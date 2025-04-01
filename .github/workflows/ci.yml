@@ -24,6 +24,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
+      - name: Create dummy .env for testing
+        run: |
+          echo "SECRET_KEY=ci-secret" >> backend/.env
+          echo "DATABASE_URL=sqlite:///:memory:" >> backend/.env
+
       - name: Run tests
         run: |
           export PYTHONPATH=./backend

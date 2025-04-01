@@ -1,3 +1,57 @@
+# FastAPI / Uvicorn logs
+*.pid
+*.log
+
+# Docker
+*.pid
+*.tar
+docker-compose.override.yml
+.env
+.env.*
+
+# Kotlin / Android / IntelliJ
+*.iml
+.gradle/
+.idea/
+*.apk
+*.ap_
+build/
+captures/
+local.properties
+*.keystore
+*.jks
+*.swp
+.DS_Store
+
+# iOS (Xcode)
+Pods/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# System
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Optional: exclude compiled shared Kotlin artifacts
+shared/build/
+
+# Python:
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

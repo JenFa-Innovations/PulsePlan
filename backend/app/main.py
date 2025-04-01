@@ -1,4 +1,4 @@
-# app/main.py
+# backend/app/main.py
 
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
@@ -6,13 +6,17 @@ from app.database import Base, engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Create DB tables
+    from app.routers import auth
+    app.include_router(auth.router)
+    print("✅ Router /register included")  # Debug check
     Base.metadata.create_all(bind=engine)
     yield
-    # Shutdown (optional cleanup)
 
-app = FastAPI(lifespan=lifespan)
+def create_app():
+    app = FastAPI(lifespan=lifespan)
 
-@app.get("/")
-def root():
-    return {"message": "PulsePlan backend is running 🚀"}
+    @app.get("/")
+    def root():
+        return {"message": "PulsePlan backend is running 🚀"}
+
+    return app

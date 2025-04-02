@@ -28,6 +28,8 @@ def db():
 def client(db):
     app = create_app()
 
+    app.state.limiter.enabled = False
+
     def override_get_db():
         try:
             yield db

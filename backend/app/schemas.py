@@ -12,3 +12,11 @@ class UserResponse(BaseModel):
     model_config = {
         "from_attributes": True  # Enables ORM-to-Pydantic conversion
     }
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str

@@ -1,19 +1,25 @@
 # backend/app/routers/auth.py
 
+from fastapi import Request
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.main import limiter
 from app.models import User
-from app.schemas import UserCreate, UserResponse
-from app.security import hash_password
+from app.schemas import UserCreate, UserResponse, LoginRequest, Token
+from app.security import hash_password, create_access_token, verify_password
 from app.core.config import settings
 import pyotp
-from fastapi import Body
+from datetime import datetime, timedelta
+
+LOCK_THRESHOLDS = [3, 5, 7]
+LOCK_TIMES = [30, 60, 300]  # seconds
 
 router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def register(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     totp = pyotp.TOTP(settings.REGISTRATION_SECRET)
     if not totp.verify(user.otp_code):
         raise HTTPException(status_code=403, detail="Invalid or expired OTP code")
@@ -28,3 +34,39 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+@router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
+def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == login_data.username).first()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # check lockout
+    if user.lock_until and user.lock_until > datetime.utcnow():
+        remaining = int((user.lock_until - datetime.utcnow()).total_seconds())
+        raise HTTPException(
+            status_code=403,
+            detail=f"Too many failed attempts. Try again in {remaining} seconds."
+        )
+
+    # wrong password
+    if not verify_password(login_data.password, user.hashed_password):
+        user.failed_attempts += 1
+
+        if user.failed_attempts in LOCK_THRESHOLDS:
+            i = LOCK_THRESHOLDS.index(user.failed_attempts)
+            duration = LOCK_TIMES[i]
+            user.lock_until = datetime.utcnow() + timedelta(seconds=duration)
+
+        db.commit()
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # right password → reset counters
+    user.failed_attempts = 0
+    user.lock_until = None
+    db.commit()
+
+    token = create_access_token({"sub": user.username})
+    return {"access_token": token, "token_type": "bearer"}

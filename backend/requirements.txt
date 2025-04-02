@@ -6,3 +6,5 @@ pydantic-settings
 pytest
 httpx
 passlib[bcrypt]
+python-jose[cryptography]
+slowapi

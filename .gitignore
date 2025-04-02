@@ -1,3 +1,6 @@
+#Test
+*.db
+
 # FastAPI / Uvicorn logs
 *.pid
 *.log

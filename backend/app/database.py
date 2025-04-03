@@ -1,14 +1,24 @@
-# app/database.py
+# backend/app/database.py
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import settings
 
-# SQLAlchemy engine for SQLite (can be extended later)
-engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
+engine = None
+SessionLocal = None
 
-# SessionLocal for use in dependency injection
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def init_engine(url: str):
+    global engine, SessionLocal
+    engine = create_engine(url, connect_args={"check_same_thread": False})
+    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
-# Base class for models
+init_engine(settings.DATABASE_URL)
+
 Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

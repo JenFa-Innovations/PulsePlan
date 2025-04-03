@@ -8,3 +8,5 @@ httpx
 passlib[bcrypt]
 python-jose[cryptography]
 slowapi
+redis
+pyotp

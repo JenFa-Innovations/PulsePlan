@@ -5,7 +5,8 @@ from sqlalchemy import inspect
 from app.models import Base
 from app.database import get_db, init_engine, engine, SessionLocal
 from fastapi.testclient import TestClient
-from app.main import create_app
+from app.main import create_app, redis_client
+import redis
 
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
 
@@ -42,3 +43,11 @@ def client(db):
         yield client
 
     app.dependency_overrides.clear()
+
+@pytest.fixture(scope="function", autouse=True)
+def clear_redis():
+    # Redis-Client aus der App-Instanz holen
+    redis_client.flushdb()  # Alle Daten im Redis zurücksetzen
+
+    # Mache weiter mit dem Test
+    yield

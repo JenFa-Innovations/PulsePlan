@@ -2,6 +2,7 @@ import time
 import pyotp
 import pytest
 from app.core.config import settings
+from app.main import redis_client
 
 
 @pytest.fixture
@@ -85,3 +86,30 @@ def test_login_unlock_after_wait(client, valid_otp):
     res = login_user(client, "unlockuser", "secure123")
     assert res.status_code == 200
     assert "access_token" in res.json()
+
+def test_blacklist_login(client, valid_otp):
+    # First, register the user
+    response = register_user(client, "blacklistuser", valid_otp)
+    assert response.status_code == 201
+    
+    # Simulate a failed login attempt
+    res = login_user(client, "blacklistuser", "wrongpassword")
+    assert res.status_code == 401
+
+    # Now, the user should be locked out after the failed attempts
+    for _ in range(2):  # Make 2 more failed login attempts to trigger lockout
+        res = login_user(client, "blacklistuser", "wrongpassword")
+        assert res.status_code == 401
+    
+    # The account should be locked now, so it should be added to blacklist
+    res = login_user(client, "blacklistuser", "wrongpassword")
+    assert res.status_code == 403
+    assert "Too many failed attempts" in res.text  # Assert the correct error message
+
+    # Manually add the user to the blacklist in Redis
+    redis_client.setex(f"blacklist:blacklistuser", 3600, "blocked")  # Blacklist for 1 hour
+
+    # Attempt login again - it should be blocked as the user is blacklisted
+    res = login_user(client, "blacklistuser", "secure123")
+    assert res.status_code == 403
+    assert "User is blacklisted" in res.text  # Assert the correct blacklist message

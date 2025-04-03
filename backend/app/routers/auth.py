@@ -9,6 +9,7 @@ from app.models import User
 from app.schemas import UserCreate, UserResponse, LoginRequest, Token
 from app.security import hash_password, create_access_token, verify_password
 from app.core.config import settings
+from app.core.redis import add_to_blacklist, is_blacklisted
 import pyotp
 from datetime import datetime, timedelta
 
@@ -43,6 +44,10 @@ def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    # Check if the user is blacklisted
+    if is_blacklisted(login_data.username):
+        raise HTTPException(status_code=403, detail="User is blacklisted")
+
     # check lockout
     if user.lock_until and user.lock_until > datetime.utcnow():
         remaining = int((user.lock_until - datetime.utcnow()).total_seconds())
@@ -61,6 +66,9 @@ def login(request: Request, login_data: LoginRequest, db: Session = Depends(get_
             user.lock_until = datetime.utcnow() + timedelta(seconds=duration)
 
         db.commit()
+        if user.failed_attempts >= LOCK_THRESHOLDS[-1]:  # max threshold reached
+            add_to_blacklist(login_data.username, 3600)  # Blacklist the user for 1 hour
+
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # right password → reset counters

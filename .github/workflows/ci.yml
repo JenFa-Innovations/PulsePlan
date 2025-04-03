@@ -1,22 +1,7 @@
-name: CI
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      redis:
-        image: redis:latest
-        ports:
-          - 6379:6379
-        options: --health-cmd="curl --fail http://localhost:6379" --health-interval=10s --health-timeout=5s --health-retries=5
-        
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -45,7 +30,7 @@ jobs:
           docker-compose -f backend/docker-compose.yml up -d  # Start Docker container in the background
           docker-compose -f backend/docker-compose.yml ps    # Check if the containers are up
 
-      - name: Run tests in the Docker container
+      - name: Run tests in Docker container
         run: |
           docker-compose -f backend/docker-compose.yml exec backend-pulseplan-api-1 pytest  # Run tests inside the Docker container
 

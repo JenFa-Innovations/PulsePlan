@@ -28,7 +28,7 @@ jobs:
         run: |
           docker-compose -f backend/docker-compose.yml build  # Build Docker image using Docker Compose
           docker-compose -f backend/docker-compose.yml up -d  # Start Docker container in the background
-          docker-compose -f backend/docker-compose.yml ps    # Check if the containers are up
+          docker-compose -f backend/docker-compose.yml ps    # Check if the containers reis and pulsplan are up
 
       - name: Run tests in Docker container
         run: |

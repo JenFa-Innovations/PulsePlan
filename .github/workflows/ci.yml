@@ -10,6 +10,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: --health-cmd="curl --fail http://localhost:6379" --health-interval=10s --health-timeout=5s --health-retries=5
+        
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -28,8 +35,20 @@ jobs:
         run: |
           echo "SECRET_KEY=ci-secret" >> backend/.env
           echo "DATABASE_URL=sqlite:///:memory:" >> backend/.env
+          echo "REDIS_HOST=localhost" >> backend/.env
+          echo "REDIS_PORT=6379" >> backend/.env
+          echo "REDIS_DB=0" >> backend/.env
 
-      - name: Run tests
+      - name: Build Docker image and run containers
         run: |
-          export PYTHONPATH=./backend
-          pytest backend/tests
+          docker-compose -f backend/docker-compose.yml build  # Build Docker image using Docker Compose
+          docker-compose -f backend/docker-compose.yml up -d  # Start Docker container in the background
+          docker-compose -f backend/docker-compose.yml ps    # Check if the containers are up
+
+      - name: Run tests in the Docker container
+        run: |
+          docker-compose -f backend/docker-compose.yml exec backend-pulseplan-api-1 pytest  # Run tests inside the Docker container
+
+      - name: Shutdown Docker container
+        run: |
+          docker-compose -f backend/docker-compose.yml down  # Shutdown Docker container after tests

@@ -26,9 +26,12 @@ jobs:
 
       - name: Install Docker Compose
         run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
           sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version  # Verify installation
+          docker --version  # Verify Docker installation
+          docker-compose --version  # Verify Docker Compose installation
 
       - name: Create dummy .env for testing
         run: |
@@ -44,9 +47,14 @@ jobs:
           docker-compose -f backend/docker-compose.yml up -d  # Start Docker container in the background
           docker-compose -f backend/docker-compose.yml ps    # Check if the containers reis and pulsplan are up
 
-      - name: Run tests in Docker container
+      - name: Wait for containers to be ready
         run: |
-          docker-compose -f backend/docker-compose.yml exec backend-pulseplan-api-1 pytest  # Run tests inside the Docker container
+          sleep 10  # Wait for the containers to be fully ready (you can increase this time if needed)
+
+      - name: Run tests in the repo
+        run: |
+          export PYTHONPATH=./backend
+          pytest backend/tests  # Run tests inside the repo, not inside the container
 
       - name: Shutdown Docker container
         run: |

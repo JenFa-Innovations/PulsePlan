@@ -24,12 +24,35 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version  # Verify installation
+
       - name: Create dummy .env for testing
         run: |
           echo "SECRET_KEY=ci-secret" >> backend/.env
           echo "DATABASE_URL=sqlite:///:memory:" >> backend/.env
+          echo "REDIS_HOST=localhost" >> backend/.env
+          echo "REDIS_PORT=6379" >> backend/.env
+          echo "REDIS_DB=0" >> backend/.env
 
-      - name: Run tests
+      - name: Build Docker image and run containers
+        run: |
+          docker-compose -f backend/docker-compose.yml build  # Build Docker image using Docker Compose
+          docker-compose -f backend/docker-compose.yml up -d  # Start Docker container in the background
+          docker-compose -f backend/docker-compose.yml ps    # Check if the containers reis and pulsplan are up
+
+      - name: Wait for containers to be ready
+        run: |
+          sleep 10  # Wait for the containers to be fully ready (you can increase this time if needed)
+
+      - name: Run tests in the repo
         run: |
           export PYTHONPATH=./backend
-          pytest backend/tests
+          pytest backend/tests  # Run tests inside the repo, not inside the container
+
+      - name: Shutdown Docker container
+        run: |
+          docker-compose -f backend/docker-compose.yml down  # Shutdown Docker container after tests

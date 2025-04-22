@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 class UserCreate(BaseModel):
     username: str
@@ -20,3 +21,19 @@ class Token(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+class TaskBase(BaseModel):
+    title: str
+    description: str
+    start_time: datetime
+    end_time: datetime
+
+class TaskCreate(TaskBase):
+    pass
+
+class Task(TaskBase):
+    id: int
+    user_id: int
+
+    class Config:
+        orm_mode = True

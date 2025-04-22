@@ -21,8 +21,9 @@ limiter = Limiter(key_func=get_remote_address)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.routers import auth
+    from app.routers import auth, tasks
     app.include_router(auth.router)
+    app.include_router(tasks.router)
     print("✅ Router /register included")  # Debug check
     Base.metadata.create_all(bind=engine)
     app.state.redis = redis_client  # Store Redis client in app's state
